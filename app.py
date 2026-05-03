@@ -1,29 +1,59 @@
 import streamlit as st
+from moviepy.editor import ImageClip, concatenate_videoclips, TextClip, CompositeVideoClip
+from PIL import Image
+import numpy as np
+import tempfile
+import os
 
-# Uygulama Başlığı
-st.title("🏠 Emlak İlan Asistanı")
-st.subheader("Notlarınızı profesyonel ilanlara dönüştürün.")
+st.set_page_config(page_title="EmlakAI Video Pro", page_icon="🎬")
 
-# Giriş Alanı
-notlar = st.text_area("Ev özelliklerini buraya yazın:", 
-                      placeholder="Örn: 3+1, deniz manzaralı, geniş balkon, Beşiktaş...",
-                      height=100)
+st.title("🎬 EmlakAI: Otomatik Reels Oluşturucu")
+st.markdown("Fotoğrafları yükleyin, profesyonel videonuzu anında indirin.")
 
-# Dönüştürme Butonu
-if st.button("İlanları Oluştur"):
-    if notlar:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.info("📱 Instagram Reels Senaryosu")
-            st.write(f"**Giriş:** Heyecan verici bir ev turuna hazır mısınız? ✨")
-            st.write(f"**Metin:** Bugün Beşiktaş'ın kalbinde, {notlar} özelliklerine sahip bu eşsiz evi inceliyoruz.")
-            st.write(f"**Kapanış:** Detaylar ve randevu için DM! 📩")
-            
-        with col2:
-            st.success("📝 Profesyonel İlan Metni")
-            st.write(f"**Başlık:** Hayallerinizdeki Konfor Burada! 🌟")
-            st.write(f"**Açıklama:** Beşiktaş bölgesinde yer alan dairemiz; {notlar} ile hem oturum hem yatırım için kaçırılmayacak bir fırsat sunuyor.")
-            st.write(f"**İletişim:** Hemen arayın, bu fırsatı kaçırmayın!")
+# --- GİRİŞ ALANLARI ---
+uploaded_files = st.file_uploader("Evin fotoğraflarını seçin (En az 3 adet)", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
+ilan_baslik = st.text_input("Video üzerine yazılacak başlık:", "HAYALLERİNİZDEKİ EV!")
+
+if st.button("Reels Videosu Oluştur"):
+    if uploaded_files and len(uploaded_files) >= 1:
+        with st.spinner('Video hazırlanıyor, bu işlem 1 dakika sürebilir...'):
+            clips = []
+            try:
+                for uploaded_file in uploaded_files:
+                    # Fotoğrafı aç ve boyutlandır (Reels boyutu: 1080x1920)
+                    img = Image.open(uploaded_file).convert("RGB")
+                    img = img.resize((1080, 1920), Image.Resampling.LANCZOS)
+                    
+                    # Geçici bir dosyaya kaydet
+                    temp_img = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                    img.save(temp_img.name)
+                    
+                    # Video klibi oluştur (her fotoğraf 2 saniye)
+                    clip = ImageClip(temp_img.name).set_duration(2)
+                    clips.append(clip)
+                
+                # Klipleri birleştir
+                final_clip = concatenate_videoclips(clips, method="compose")
+                
+                # Videoyu kaydet
+                temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+                final_clip.write_videofile(temp_video.name, fps=24, codec='libx264')
+                
+                # Videoyu göster ve indir
+                st.video(temp_video.name)
+                
+                with open(temp_video.name, "rb") as file:
+                    st.download_button(
+                        label="Videoyu İndir 📥",
+                        data=file,
+                        file_name="emlak_reels.mp4",
+                        mime="video/mp4"
+                    )
+                
+                # Temizlik
+                st.success("Videonuz hazır! Şimdi indirip paylaşabilirsiniz.")
+                
+            except Exception as e:
+                st.error(f"Bir hata oluştu: {e}")
     else:
-        st.warning("Lütfen önce ev özelliklerini girin.")
+        st.warning("Lütfen en az bir fotoğraf yükleyin.")
