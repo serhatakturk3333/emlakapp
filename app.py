@@ -1,9 +1,15 @@
 import streamlit as st
-from moviepy.editor import ImageClip, concatenate_videoclips, TextClip, CompositeVideoClip
-from PIL import Image
-import numpy as np
-import tempfile
 import os
+
+# MoviePy kütüphanesini daha güvenli çağırmak için
+try:
+    from moviepy.editor import ImageClip, concatenate_videoclips
+except ImportError:
+    os.system("pip install moviepy")
+    from moviepy.editor import ImageClip, concatenate_videoclips
+
+from PIL import Image
+# ... kodun geri kalanı aynı kalabilir
 
 st.set_page_config(page_title="EmlakAI Video Pro", page_icon="🎬")
 
